@@ -65,18 +65,35 @@ RUN wget https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-li
 #   systemd-sysv systemd-timesyncd tzdata
 #
 # gpg-agent: failed to start agent '/usr/bin/gpg-agent': No such file or directory
+# NOTE: this is a 900+MB layer...
+# and as GH Action DOES NOT cache pulled images, the step "Initialize containers" takes 20+s
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     lsb-release software-properties-common \
+#     gpg-agent \
+#     && rm -rf /var/lib/apt/lists/*  && \
+#     wget https://apt.llvm.org/llvm.sh && \
+#     chmod +x llvm.sh && \
+#     ./llvm.sh 13 && \
+#     rm -rf /var/lib/apt/lists/* && \
+#     rm llvm.sh && \
+#     update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 100 && \
+#     update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-13 100 && \
+#     clang --version
+#
+# With this layer is 208.2MB
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    lsb-release software-properties-common \
-    gpg-agent \
-    && rm -rf /var/lib/apt/lists/*  && \
-    wget https://apt.llvm.org/llvm.sh && \
-    chmod +x llvm.sh && \
-    ./llvm.sh 13 && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm llvm.sh && \
-    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-13 100 && \
-    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-13 100 && \
-    clang --version
+    # build-essential would work too, but:
+    # - install gcc 9 instead of 10
+    # - also dep on make, and dpkg-XXX
+    # NOTE: g++ dep on gcc-N so this is fine, also libc-dev and libstdc++-10-dev
+    g++-10 \
+    && rm -rf /var/lib/apt/lists/* && \
+    update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-10 100 && \
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 && \
+    cc --version && \
+    gcc --version && \
+    g++ --version
 
 # Install Conan from deb
 RUN wget https://github.com/conan-io/conan/releases/latest/download/conan-ubuntu-64.deb -O /tmp/conan.deb && \
