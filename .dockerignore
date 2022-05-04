@@ -1,0 +1,8 @@
+# whitelist instead of blacklist
+# that way COPY is properly cached which is useful when dev/testing the dockerfile
+
+# Ignore everything
+*
+
+# Allow files and folders with a pattern starting with !
+!/data/
