@@ -23,16 +23,17 @@ ENV PATH=$PATH:/opt/cmake/bin/
 # remove ccmake: 13MB
 # remove doc: 31MB
 # remove man: 3MB
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.22.3/cmake-3.22.3-linux-x86_64.sh && \
-    chmod +x cmake-3.22.3-linux-x86_64.sh && \
+RUN export version=3.23.2 && \
+    wget https://github.com/Kitware/CMake/releases/download/v$version/cmake-$version-linux-x86_64.sh && \
+    chmod +x cmake-$version-linux-x86_64.sh && \
     mkdir /opt/cmake/ && \
-    ./cmake-3.22.3-linux-x86_64.sh --skip-license --prefix=/opt/cmake/ && \
+    ./cmake-$version-linux-x86_64.sh --skip-license --prefix=/opt/cmake/ && \
     rm cmake-*.sh && \
     rm -rf /opt/cmake/bin/cmake-gui /opt/cmake/bin/ccmake /opt/cmake/doc /opt/cmake/man && \
     cmake -version
 
 # prereq: install Ninja (ninja-build)
-RUN wget https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip && \
+RUN wget https://github.com/ninja-build/ninja/releases/download/v1.11.0/ninja-linux.zip && \
     unzip ninja-linux.zip -d /usr/local/bin/ && \
     rm ninja-linux.zip && \
     ninja --version
