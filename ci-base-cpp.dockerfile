@@ -12,10 +12,16 @@ WORKDIR /usr/src/app
 
 # DEBIAN_FRONTEND needed to stop prompt for timezone
 # ca-certificates: recommended by wget; else we get eg "ERROR: cannot verify github.com's certificate, issued by 'CN=DigiCert TLS Hybrid ECC SHA384 2020 CA1,O=DigiCert Inc,C=US'"
+# sudo: needed only b/c that way we can use the same CI workflows when using this image, and when running directly on ubuntu-latest(which uses passwordless sudo)
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget ca-certificates curl unzip xz-utils git \
+    wget ca-certificates curl unzip xz-utils git sudo \
     && rm -rf /var/lib/apt/lists/*
+
+# https://stackoverflow.com/questions/323957/how-do-i-edit-etc-sudoers-from-a-script
+RUN bash -c 'echo "root ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/99_passwordless_root' && \
+    visudo -c -q -f /etc/sudoers.d/99_passwordless_root && \
+    sudo echo test
 
 # prereq: install CMake
 ENV PATH=$PATH:/opt/cmake/bin/
