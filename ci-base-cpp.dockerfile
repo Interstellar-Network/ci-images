@@ -3,10 +3,22 @@
 # For now it is also used as a base of the CI image for the Rust repos api_circuits
 # and api_garble b/c they compile the lib_ from source.
 
+# CPP version:
 # podman build -f ci-base-cpp.dockerfile -t ci-base-cpp:dev .
 # podman tag ci-base-cpp:dev ghcr.io/interstellar-network/ci-images/ci-base-cpp:dev
+#
+# Rust version:
+# podman build -f ci-base-cpp.dockerfile -t ci-base-rust:dev --build-arg BASE_IMAGE=rust:1.62 .
+# podman tag ci-base-rust:dev ghcr.io/interstellar-network/ci-images/ci-base-rust:dev
 
-FROM ubuntu:20.04 as builder
+# We use this b/c we want two versions of this Dockerfile:
+# - one used for lib_circuits/lib_garble CI: directly based on eg Ubuntu
+# - one used for api_circuits/api_garble CI and/or prod container: based instead on eg rust:XX
+# NOTE: we do it this way b/c the Rust projects depend on the CPP one, and for now at least, they recompile
+# the C++ from source.
+ARG BASE_IMAGE=ubuntu:20.04
+
+FROM $BASE_IMAGE as builder
 
 WORKDIR /usr/src/app
 
@@ -108,15 +120,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++ --version
 
 # Install Conan from deb
+# "conan profile" MUST match /gh-actions/prepare/action.yml
+# also version and compiler MUST match "apt-get install" just above
 RUN wget https://github.com/conan-io/conan/releases/latest/download/conan-ubuntu-64.deb -O /tmp/conan.deb && \
     apt-get install -y --no-install-recommends /tmp/conan.deb && \
     rm -rf /var/lib/apt/lists/* && \
     rm /tmp/conan.deb && \
-    conan --version
-    # TODO?
-    # conan profile new default --detect
-    # conan profile update settings.compiler=gcc default
-    # conan profile update settings.compiler.libcxx=libstdc++11 default
+    conan --version && \
+    conan profile new default --detect && \
+    conan profile update settings.compiler=gcc default && \
+    conan profile update settings.compiler.version=10 default && \
+    conan profile update settings.compiler.libcxx=libstdc++11 default
 
 # Install CCache from prebuilt
 RUN wget https://github.com/Interstellar-Network/gh-actions/releases/download/ccache-4.6/ccache -O /usr/local/bin/ccache && \
