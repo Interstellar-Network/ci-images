@@ -4,12 +4,10 @@
 # and api_garble b/c they compile the lib_ from source.
 
 # CPP version:
-# podman build -f ci-base-cpp.dockerfile -t ci-base-cpp:dev .
-# podman tag ci-base-cpp:dev ghcr.io/interstellar-network/ci-images/ci-base-cpp:dev
+# podman build -f ci-base-cpp.dockerfile -t ci-base-cpp:dev -t ghcr.io/interstellar-network/ci-images/ci-base-cpp:dev .
 #
 # Rust version:
-# podman build -f ci-base-cpp.dockerfile -t ci-base-rust:dev --build-arg BASE_IMAGE=rust:1.62 .
-# podman tag ci-base-rust:dev ghcr.io/interstellar-network/ci-images/ci-base-rust:dev
+# podman build -f ci-base-cpp.dockerfile -t ci-base-rust:dev -t ghcr.io/interstellar-network/ci-images/ci-base-rust:dev --build-arg BASE_IMAGE=rust:1.62 .
 
 # We use this b/c we want two versions of this Dockerfile:
 # - one used for lib_circuits/lib_garble CI: directly based on eg Ubuntu
@@ -133,17 +131,24 @@ RUN wget https://github.com/conan-io/conan/releases/latest/download/conan-ubuntu
     conan profile update settings.compiler.libcxx=libstdc++11 default
 
 # Install CCache from prebuilt
-RUN wget https://github.com/Interstellar-Network/gh-actions/releases/download/ccache-4.6/ccache -O /usr/local/bin/ccache && \
-    chmod +x /usr/local/bin/ccache && \
-    ccache --show-config
+# also set it as default compiler
+RUN mkdir /tmp/ccache && \
+    cd /tmp/ccache && \
+    wget -O ccache.tar.xz https://github.com/ccache/ccache/releases/download/v4.6.1/ccache-4.6.1-linux-x86_64.tar.xz && \
+    tar -xf ccache.tar.xz --strip-components=1 && \
+    chmod +x ccache && \
+    sudo mv ccache /usr/local/bin/ccache && \
+    rm -rf /tmp/ccache && \
+    ccache --show-config && \
+    ln -s ccache /usr/local/bin/gcc && \
+    ln -s ccache /usr/local/bin/g++
 
 # Install mold(linker)
 # Set it as default(ie replace ld) b/c Rust tends to NOT correctly detect
 # RUSTFLAGS and that force things to recompile from scratch
 #
 # https://github.com/rui314/setup-mold/blob/main/action.yml
-
-    # version=$(wget -q -O- https://api.github.com/repos/rui314/mold/releases/latest | jq -r .tag_name | sed 's/^v//'); true
+# version=$(wget -q -O- https://api.github.com/repos/rui314/mold/releases/latest | jq -r .tag_name | sed 's/^v//'); true
 RUN export version=1.3.1 && \
     wget -O- https://github.com/rui314/mold/releases/download/v$version/mold-$version-$(uname -m)-linux.tar.gz | tar -C /usr/local --strip-components=1 -xzf - && \
     ln -sf /usr/local/bin/mold $(realpath /usr/bin/ld)
