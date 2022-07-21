@@ -151,4 +151,5 @@ RUN mkdir /tmp/ccache && \
 # version=$(wget -q -O- https://api.github.com/repos/rui314/mold/releases/latest | jq -r .tag_name | sed 's/^v//'); true
 RUN export version=1.3.1 && \
     wget -O- https://github.com/rui314/mold/releases/download/v$version/mold-$version-$(uname -m)-linux.tar.gz | tar -C /usr/local --strip-components=1 -xzf - && \
+    sudo chmod +x /usr/local/bin/mold && \
     ln -sf /usr/local/bin/mold $(realpath /usr/bin/ld)
