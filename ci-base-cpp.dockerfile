@@ -134,7 +134,7 @@ RUN wget https://github.com/conan-io/conan/releases/latest/download/conan-ubuntu
 # also set it as default compiler
 RUN mkdir /tmp/ccache && \
     cd /tmp/ccache && \
-    wget -O ccache.tar.xz https://github.com/ccache/ccache/releases/download/v4.6.1/ccache-4.6.1-linux-x86_64.tar.xz && \
+    wget -O ccache.tar.xz https://github.com/ccache/ccache/releases/download/v4.6.3/ccache-4.6.3-linux-x86_64.tar.xz && \
     tar -xf ccache.tar.xz --strip-components=1 && \
     chmod +x ccache && \
     sudo mv ccache /usr/local/bin/ccache && \
@@ -149,7 +149,7 @@ RUN mkdir /tmp/ccache && \
 #
 # https://github.com/rui314/setup-mold/blob/main/action.yml
 # version=$(wget -q -O- https://api.github.com/repos/rui314/mold/releases/latest | jq -r .tag_name | sed 's/^v//'); true
-RUN export version=1.3.1 && \
+RUN export version=1.5.0 && \
     wget -O- https://github.com/rui314/mold/releases/download/v$version/mold-$version-$(uname -m)-linux.tar.gz | tar -C /usr/local --strip-components=1 -xzf - && \
     sudo chmod +x /usr/local/bin/mold && \
     ln -sf /usr/local/bin/mold $(realpath /usr/bin/ld)
