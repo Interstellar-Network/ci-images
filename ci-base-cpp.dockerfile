@@ -4,10 +4,16 @@
 # and api_garble b/c they compile the lib_ from source.
 
 # CPP version:
-# podman build -f ci-base-cpp.dockerfile -t ci-base-cpp:dev -t ghcr.io/interstellar-network/ci-images/ci-base-cpp:dev .
+# podman build -f ci-base-cpp.dockerfile -t ghcr.io/interstellar-network/ci-images/ci-base-cpp:dev .
+# to publish:
+# podman tag ghcr.io/interstellar-network/ci-images/ci-base-cpp:dev ghcr.io/interstellar-network/ci-images/ci-base-cpp:vXXX
+# podman push ghcr.io/interstellar-network/ci-images/ci-base-cpp:vXXX
 #
 # Rust version:
-# podman build -f ci-base-cpp.dockerfile -t ci-base-rust:dev -t ghcr.io/interstellar-network/ci-images/ci-base-rust:dev --build-arg BASE_IMAGE=rust:1.62 .
+# podman build -f ci-base-cpp.dockerfile -t ghcr.io/interstellar-network/ci-images/ci-base-rust:dev --build-arg BASE_IMAGE=rust:1.64 .
+# to publish:
+# podman tag ghcr.io/interstellar-network/ci-images/ci-base-rust:dev ghcr.io/interstellar-network/ci-images/ci-base-rust:vXXX
+# podman push ghcr.io/interstellar-network/ci-images/ci-base-rust:vXXX
 
 # We use this b/c we want two versions of this Dockerfile:
 # - one used for lib_circuits/lib_garble CI: directly based on eg Ubuntu
@@ -39,7 +45,7 @@ ENV PATH=$PATH:/opt/cmake/bin/
 # remove ccmake: 13MB
 # remove doc: 31MB
 # remove man: 3MB
-RUN export version=3.23.2 && \
+RUN export version=3.24.2 && \
     wget https://github.com/Kitware/CMake/releases/download/v$version/cmake-$version-linux-x86_64.sh && \
     chmod +x cmake-$version-linux-x86_64.sh && \
     mkdir /opt/cmake/ && \
@@ -49,7 +55,7 @@ RUN export version=3.23.2 && \
     cmake -version
 
 # prereq: install Ninja (ninja-build)
-RUN wget https://github.com/ninja-build/ninja/releases/download/v1.11.0/ninja-linux.zip && \
+RUN wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip && \
     unzip ninja-linux.zip -d /usr/local/bin/ && \
     rm ninja-linux.zip && \
     ninja --version
@@ -149,7 +155,7 @@ RUN mkdir /tmp/ccache && \
 #
 # https://github.com/rui314/setup-mold/blob/main/action.yml
 # version=$(wget -q -O- https://api.github.com/repos/rui314/mold/releases/latest | jq -r .tag_name | sed 's/^v//'); true
-RUN export version=1.5.0 && \
+RUN export version=1.5.1 && \
     wget -O- https://github.com/rui314/mold/releases/download/v$version/mold-$version-$(uname -m)-linux.tar.gz | tar -C /usr/local --strip-components=1 -xzf - && \
     sudo chmod +x /usr/local/bin/mold && \
     ln -sf /usr/local/bin/mold $(realpath /usr/bin/ld)
