@@ -1,28 +1,13 @@
 ################################################################################
-# DEPRECATED: cf base-rust.dockerfile
-#
-# CI image use as "container:" for the the CI of lib_circuits and lib_garble
-# For now it is also used as a base of the CI image for the Rust repos api_circuits
-# and api_garble b/c they compile the lib_ from source.
+# For now it is use as a base of the CI image for the Rust repos eg `api_circuits` and `integritee-node`
+# (`integritee-worker` requires SGX so we use integritee's images)
 
-# CPP version:
-# podman build -f ci-base-cpp.dockerfile -t ghcr.io/interstellar-network/ci-images/ci-base-cpp:dev .
+# podman build -f base-rust.dockerfile -t ghcr.io/interstellar-network/ci-images/base-rust:dev --build-arg BASE_IMAGE=rust:1.67 .
 # to publish:
-# podman tag ghcr.io/interstellar-network/ci-images/ci-base-cpp:dev ghcr.io/interstellar-network/ci-images/ci-base-cpp:vXXX
-# podman push ghcr.io/interstellar-network/ci-images/ci-base-cpp:vXXX
-#
-# Rust version:
-# podman build -f ci-base-cpp.dockerfile -t ghcr.io/interstellar-network/ci-images/ci-base-rust:dev --build-arg BASE_IMAGE=rust:1.64 .
-# to publish:
-# podman tag ghcr.io/interstellar-network/ci-images/ci-base-rust:dev ghcr.io/interstellar-network/ci-images/ci-base-rust:vXXX
-# podman push ghcr.io/interstellar-network/ci-images/ci-base-rust:vXXX
+# podman tag ghcr.io/interstellar-network/ci-images/base-rust:dev ghcr.io/interstellar-network/ci-images/base-rust:vXXX
+# podman push ghcr.io/interstellar-network/ci-images/base-rust:vXXX
 
-# We use this b/c we want two versions of this Dockerfile:
-# - one used for lib_circuits/lib_garble CI: directly based on eg Ubuntu
-# - one used for api_circuits/api_garble CI and/or prod container: based instead on eg rust:XX
-# NOTE: we do it this way b/c the Rust projects depend on the CPP one, and for now at least, they recompile
-# the C++ from source.
-ARG BASE_IMAGE=ubuntu:20.04
+ARG BASE_IMAGE=rust:1.67
 
 FROM $BASE_IMAGE as builder
 
@@ -47,7 +32,7 @@ ENV PATH=$PATH:/opt/cmake/bin/
 # remove ccmake: 13MB
 # remove doc: 31MB
 # remove man: 3MB
-RUN export version=3.24.2 && \
+RUN export version=3.25.2 && \
     wget https://github.com/Kitware/CMake/releases/download/v$version/cmake-$version-linux-x86_64.sh && \
     chmod +x cmake-$version-linux-x86_64.sh && \
     mkdir /opt/cmake/ && \
@@ -125,39 +110,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc --version && \
     g++ --version
 
-# Install Conan from deb
-# "conan profile" MUST match /gh-actions/prepare/action.yml
-# also version and compiler MUST match "apt-get install" just above
-RUN wget https://github.com/conan-io/conan/releases/latest/download/conan-ubuntu-64.deb -O /tmp/conan.deb && \
-    apt-get install -y --no-install-recommends /tmp/conan.deb && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm /tmp/conan.deb && \
-    conan --version && \
-    conan profile new default --detect && \
-    conan profile update settings.compiler=gcc default && \
-    conan profile update settings.compiler.version=10 default && \
-    conan profile update settings.compiler.libcxx=libstdc++11 default
-
-# Install CCache from prebuilt
-# also set it as default compiler
-RUN mkdir /tmp/ccache && \
-    cd /tmp/ccache && \
-    wget -O ccache.tar.xz https://github.com/ccache/ccache/releases/download/v4.6.3/ccache-4.6.3-linux-x86_64.tar.xz && \
-    tar -xf ccache.tar.xz --strip-components=1 && \
-    chmod +x ccache && \
-    sudo mv ccache /usr/local/bin/ccache && \
-    rm -rf /tmp/ccache && \
-    ccache --show-config && \
-    ln -s ccache /usr/local/bin/gcc && \
-    ln -s ccache /usr/local/bin/g++
-
 # Install mold(linker)
 # Set it as default(ie replace ld) b/c Rust tends to NOT correctly detect
 # RUSTFLAGS and that force things to recompile from scratch
 #
 # https://github.com/rui314/setup-mold/blob/main/action.yml
 # version=$(wget -q -O- https://api.github.com/repos/rui314/mold/releases/latest | jq -r .tag_name | sed 's/^v//'); true
-RUN export version=1.5.1 && \
+RUN export version=1.10.1 && \
     wget -O- https://github.com/rui314/mold/releases/download/v$version/mold-$version-$(uname -m)-linux.tar.gz | tar -C /usr/local --strip-components=1 -xzf - && \
     sudo chmod +x /usr/local/bin/mold && \
-    ln -sf /usr/local/bin/mold $(realpath /usr/bin/ld)
+    ln -sf /usr/local/bin/mold $(realpath /usr/bin/ld) && \
+    ld --version && \
+    mold --version
