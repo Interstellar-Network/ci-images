@@ -12,8 +12,6 @@ FROM $BASE_IMAGE as builder
 # SSH KEY of a user with access to all the Org's repos
 ARG SSH_KEY
 
-WORKDIR /usr/src/app
-
 # DEBIAN_FRONTEND needed to stop prompt for timezone
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -37,7 +35,7 @@ RUN bash -c 'echo "root ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/99_passwordles
 
 # RUST specifics
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y ;\
-    cat $HOME/.cargo/env
+    cat $HOME/.cargo/env 
 
 # https://doc.rust-lang.org/cargo/reference/config.html#netgit-fetch-with-cli
 # Needed to use private GitHub repo as `Cargo` git dependencies
@@ -59,6 +57,20 @@ RUN export version=2.37.1 && \
     wget -O- https://github.com/rui314/mold/releases/download/v$version/mold-$version-$(uname -m)-linux.tar.gz | tar -C /usr/local --strip-components=1 -xzf - && \
     sudo chmod +x /usr/local/bin/mold && \
     ln -sf /usr/local/bin/mold $(realpath /usr/bin/ld)
+
+###############################################################################
+ARG SCCACHE_VERSION=0.10.0
+# RUN cargo install --version ${SCCACHE_VERSION} sccache --locked
+RUN mkdir /tmp/sscache && \
+        cd /tmp/sscache && \
+        wget -c https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl.tar.gz -O - | tar -xz --strip-components 1 && \
+        chmod +x sccache && \
+        sudo mv sccache /usr/local/bin/sccache && \
+        sccache --version
+
+ENV SCCACHE_CACHE_SIZE="20G"
+ENV SCCACHE_DIR=$HOME/.cache/sccache
+ENV RUSTC_WRAPPER="/usr/local/bin/sccache"
 
 ###############################################################################
 # REPO specifics: lib_circuits-internal, but it is a dependency of all the repo (sort of)
