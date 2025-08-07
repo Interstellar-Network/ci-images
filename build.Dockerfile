@@ -106,10 +106,18 @@ USER myuser
 
 ###############################################################################
 # Store SSH KEY
+# NOTE this MUST be for the new User, so DO NOT move it at the top!
 RUN test -n "$SSH_KEY" || (echo "SSH_KEY not set" && false)
 RUN mkdir -p ~/.ssh \
     && echo "$SSH_KEY" >> ~/.ssh/id_ed25519 \
     && chmod 600 ~/.ssh/id_ed25519 
+
+# Add GitHub to known hosts to avoid a prompt
+RUN mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null \
+    && cat /home/myuser/.ssh/id_ed25519 \
+    && git ls-remote git@github.com:Interstellar-Network/pallets-internal.git HEAD
+# This returns 1 even on success b/c no shell access, so not good for this
+# && ssh -T git@github.com
 
 ###############################################################################
 # RUST specifics
@@ -126,10 +134,6 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
 # equivalent to `. "$HOME/.cargo/env"`
 ENV PATH="${HOME}/.cargo/bin:${PATH}"
-
-# Add GitHub to known hosts to avoid a prompt
-RUN mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null \
-    && ssh -T git@github.com
 
 # Install mold(linker)
 # Set it as default(ie replace ld) b/c Rust tends to NOT correctly detect
