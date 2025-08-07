@@ -14,6 +14,7 @@ ARG SSH_KEY
 
 # DEBIAN_FRONTEND needed to stop prompt for timezone
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
 
 # ca-certificates: recommended by wget; else we get eg "ERROR: cannot verify github.com's certificate, issued by 'CN=DigiCert TLS Hybrid ECC SHA384 2020 CA1,O=DigiCert Inc,C=US'"
 # sudo: needed only b/c that way we can use the same CI workflows when using this image, and when running directly on ubuntu-latest(which uses passwordless sudo)
@@ -26,6 +27,60 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN bash -c 'echo "root ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/99_passwordless_root' && \
     visudo -c -q -f /etc/sudoers.d/99_passwordless_root && \
     sudo echo test
+
+###############################################################################
+# Intel SGX Installation
+# Extracted and adapted from integritee/integritee-dev:0.2.2 for Ubuntu 22.04
+#
+# AND from https://github.com/Interstellar-Network/gh-actions/blob/ci-v4/install-sgx-sdk/action.yml 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    gnupg \
+    wget \
+    tzdata \
+    file \
+    && rm -rf /var/lib/apt/lists/*
+
+# STEP 2: REPLICATE THE CI SCRIPT TO INSTALL INTEL SGX SDK (as root)
+# Define the URLs from your CI script's inputs as ARGs for clarity
+ARG SDK_URL=https://download.01.org/intel-sgx/sgx-linux/2.17.1/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.17.101.1.bin
+ARG BIN_URL=https://download.01.org/intel-sgx/sgx-linux/2.17/as.ld.objdump.r4.tar.gz
+ARG BINUTILS_DIST=ubuntu20.04
+
+RUN cd /tmp && \
+    # Download the SDK installer
+    wget -O sdk.bin ${SDK_URL} && \
+    chmod +x ./sdk.bin && \
+    # Run the installer non-interactively, answering "no" to the license and specifying the install path
+    echo -e 'no\n/opt/intel' | ./sdk.bin && \
+    rm ./sdk.bin && \
+    # Set this variable now for the next steps in this same RUN block
+    export SGX_SDK=/opt/intel/sgxsdk && \
+    # Download and extract the custom binutils
+    wget -O as.ld.objdump.r4.tar.gz ${BIN_URL} && \
+    tar xzf as.ld.objdump.r4.tar.gz && \
+    # Copy the custom binutils into the SDK directory
+    mkdir -p $SGX_SDK/binutils && \
+    cp -r external/toolset/${BINUTILS_DIST}/* $SGX_SDK/binutils && \
+    # Append the new binutils path to the SDK's environment file
+    echo 'export PATH=$SGX_SDK/binutils:$PATH' >> $SGX_SDK/environment && \
+    rm -rf ./external ./as.ld.objdump.r4.tar.gz
+
+# These ENV variables make the SDK available to all subsequent commands,
+# effectively "sourcing" the environment file for the whole build.
+ENV SGX_SDK /opt/intel/sgxsdk
+ENV PATH "$SGX_SDK/binutils:$PATH:$SGX_SDK/bin:$SGX_SDK/bin/x64"
+ENV PKG_CONFIG_PATH "$PKG_CONFIG_PATH:$SGX_SDK/pkgconfig"
+ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:$SGX_SDK/sdk_libs"
+ENV SGX_MODE SW
+
+RUN apt-get update && apt-get install -y --no-install-recommends gnupg && \
+    mkdir -p /etc/apt/keyrings && \
+    wget -O - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | tee /etc/apt/keyrings/intel-sgx-keyring.asc > /dev/null && \
+    echo 'deb [signed-by=/etc/apt/keyrings/intel-sgx-keyring.asc arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu jammy main' | tee /etc/apt/sources.list.d/intel-sgx.list && \
+    apt-get update && apt-get install -y libsgx-dcap-ql libsgx-dcap-default-qpl && \
+    rm -rf /var/lib/apt/lists/*
 
 ###############################################################################
 # --- Create a non-root user to run the application ---
