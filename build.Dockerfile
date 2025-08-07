@@ -128,7 +128,8 @@ ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 ENV PATH="${HOME}/.cargo/bin:${PATH}"
 
 # Add GitHub to known hosts to avoid a prompt
-RUN mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+RUN mkdir -p ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null \
+    && ssh -T git@github.com
 
 # Install mold(linker)
 # Set it as default(ie replace ld) b/c Rust tends to NOT correctly detect
