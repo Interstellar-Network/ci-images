@@ -75,11 +75,16 @@ ENV PKG_CONFIG_PATH "$PKG_CONFIG_PATH:$SGX_SDK/pkgconfig"
 ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:$SGX_SDK/sdk_libs"
 ENV SGX_MODE SW
 
+# the `ln + find` are needed b/c the .so are versioned eg /usr/lib/x86_64-linux-gnu/libsgx_dcap_ql.so.1.11.110.0
+# but the Makefile expects `-lsgx_dcap_ql` to work 
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg && \
     mkdir -p /etc/apt/keyrings && \
     wget -O - https://download.01.org/intel-sgx/sgx_repo/ubuntu/intel-sgx-deb.key | tee /etc/apt/keyrings/intel-sgx-keyring.asc > /dev/null && \
     echo 'deb [signed-by=/etc/apt/keyrings/intel-sgx-keyring.asc arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu jammy main' | tee /etc/apt/sources.list.d/intel-sgx.list && \
     apt-get update && apt-get install -y libsgx-dcap-ql libsgx-dcap-default-qpl && \
+    ln -s $(find /usr/lib -type f -name "*sgx_dcap_ql*") /usr/lib/x86_64-linux-gnu/libsgx_dcap_ql.so && \
+    ln -s $(find /usr/lib -type f -name "*sgx_dcap_quoteverify*") /usr/lib/x86_64-linux-gnu/libsgx_dcap_quoteverify.so && \
+    ln -s $(find /usr/lib -type f -name "*dcap_quoteprov*") /usr/lib/x86_64-linux-gnu/libdcap_quoteprov.so && \
     rm -rf /var/lib/apt/lists/*
 
 ###############################################################################
