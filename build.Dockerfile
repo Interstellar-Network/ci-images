@@ -3,6 +3,8 @@
 # We use this b/c we want two versions of this Dockerfile:
 # docker build -t ci-base-dev -f build.Dockerfile --target default --build-arg "SSH_KEY=$REPLACEME_YOUR_SSH_KEY" .
 # docker build -t ci-base-dev-sgx -f build.Dockerfile --target sgx --build-arg "SSH_KEY=$REPLACEME_YOUR_SSH_KEY" --build-arg BASE_IMAGE=ubuntu:22.04 .
+# IMPORTANT: using Ubuntu 22.04 is critical for the SGX version!
+# The image here would be fine with 24.04; but `integritee-worker` will NOT compile with it.
 #
 # docker tag ci-base-dev ghcr.io/interstellar-network/containers/ci-base:dev
 # docker tag ci-base-dev-sgx ghcr.io/interstellar-network/containers/ci-base-sgx:dev
