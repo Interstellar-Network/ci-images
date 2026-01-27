@@ -134,6 +134,7 @@ FROM base AS default
 ###############################################################################
 # Intel SGX Installation
 # Extracted and adapted from integritee/integritee-dev:0.2.2 for Ubuntu 22.04
+# cf https://github.com/integritee-network/integritee-dev/blob/main/worker/Dockerfile
 #
 # AND from https://github.com/Interstellar-Network/gh-actions/blob/ci-v4/install-sgx-sdk/action.yml 
 FROM base AS sgx
@@ -191,6 +192,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends gnupg && \
     ln -s $(find /usr/lib -type f -name "*sgx_dcap_ql*") /usr/lib/x86_64-linux-gnu/libsgx_dcap_ql.so && \
     ln -s $(find /usr/lib -type f -name "*sgx_dcap_quoteverify*") /usr/lib/x86_64-linux-gnu/libsgx_dcap_quoteverify.so && \
     ln -s $(find /usr/lib -type f -name "*dcap_quoteprov*") /usr/lib/x86_64-linux-gnu/libdcap_quoteprov.so && \
+    rm -rf /var/lib/apt/lists/*
+
+# Need openssl 1.1 which is NOT available by default even on Ubuntu 22.04 anymore
+# https://gist.github.com/joulgs/c8a85bb462f48ffc2044dd878ecaa786
+# NOTE: only needed to compile eg `worker`
+RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common && \
+    apt-add-repository -y ppa:rael-gc/rvm && \
+    apt-get update && apt-get install -y libssl-dev=1.1.1l-1ubuntu1.4 && \
     rm -rf /var/lib/apt/lists/*
 
 # switch back to "myuser"
