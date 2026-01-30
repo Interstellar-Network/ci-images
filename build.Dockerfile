@@ -2,7 +2,13 @@
 #
 # We use this b/c we want two versions of this Dockerfile:
 # docker build -t ci-base-dev -f build.Dockerfile --target default --build-arg "SSH_KEY=$YOUR_SSH_KEY" .
-# docker build -t ci-base-dev-sgx -f build.Dockerfile --target sgx --build-arg "SSH_KEY=$YOUR_SSH_KEY" .
+# docker build -t ci-base-dev-sgx -f build.Dockerfile --target sgx --build-arg "SSH_KEY=$REPLACEME_YOUR_SSH_KEY" --build-arg BASE_IMAGE=ubuntu:22.04 .
+# IMPORTANT: using Ubuntu 22.04 is critical for the SGX version!
+# The image here would be fine with 24.04; but `integritee-worker` will NOT compile with it.
+#
+# docker tag ci-base-dev ghcr.io/interstellar-network/containers/ci-base:dev
+# docker tag ci-base-dev-sgx ghcr.io/interstellar-network/containers/ci-base-sgx:dev
+#
 # We need `--target default` that way we have a proper multi stage build.
 # We MUST nake sure the "default" PATH is NOT polluted with SGX else in eg the `node` we get:
 #   "/opt/intel/sgxsdk/binutils/ld: skipping incompatible /lib/x86_64-linux-gnu/libmvec.so.1 when searching for /lib/x86_64-linux-gnu/libmvec.so.1"
