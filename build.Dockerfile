@@ -134,6 +134,7 @@ FROM base AS default
 ###############################################################################
 # Intel SGX Installation
 # Extracted and adapted from integritee/integritee-dev:0.2.2 for Ubuntu 22.04
+# cf https://github.com/integritee-network/integritee-dev/blob/main/worker/Dockerfile
 #
 # AND from https://github.com/Interstellar-Network/gh-actions/blob/ci-v4/install-sgx-sdk/action.yml 
 FROM base AS sgx
