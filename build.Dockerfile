@@ -195,5 +195,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends software-proper
     apt-get update && apt-get install -y libssl-dev=1.1.1l-1ubuntu1.4 && \
     rm -rf /var/lib/apt/lists/*
 
+# This is needed when using docker-compose b/c integritee-service DOES NOT retry in case of timeout/node not yet ready
+# https://github.com/jwilder/dockerize?tab=readme-ov-file#ubuntu-images
+ENV DOCKERIZE_VERSION=v0.9.3
+RUN cd /tmp && \
+    wget -O dockerize.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && \
+    tar xzf dockerize.tar.gz && \
+    chmod +x dockerize && \
+    mv dockerize /usr/local/bin/dockerize && \
+    rm dockerize.tar.gz && \
+    dockerize --version
+
 # switch back to "myuser"
 USER myuser
