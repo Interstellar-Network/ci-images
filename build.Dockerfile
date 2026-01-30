@@ -187,5 +187,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends gnupg && \
     ln -s $(find /usr/lib -type f -name "*dcap_quoteprov*") /usr/lib/x86_64-linux-gnu/libdcap_quoteprov.so && \
     rm -rf /var/lib/apt/lists/*
 
+# Need openssl 1.1 which is NOT available by default even on Ubuntu 22.04 anymore
+# https://gist.github.com/joulgs/c8a85bb462f48ffc2044dd878ecaa786
+# NOTE: only needed to compile eg `worker`
+RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common && \
+    apt-add-repository -y ppa:rael-gc/rvm && \
+    apt-get update && apt-get install -y libssl-dev=1.1.1l-1ubuntu1.4 && \
+    rm -rf /var/lib/apt/lists/*
+
 # switch back to "myuser"
 USER myuser
