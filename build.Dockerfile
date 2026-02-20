@@ -2,7 +2,13 @@
 #
 # We use this b/c we want two versions of this Dockerfile:
 # docker build -t ci-base-dev -f build.Dockerfile --target default --build-arg "SSH_KEY=$YOUR_SSH_KEY" .
-# docker build -t ci-base-dev-sgx -f build.Dockerfile --target sgx --build-arg "SSH_KEY=$YOUR_SSH_KEY" .
+# docker build -t ci-base-dev-sgx -f build.Dockerfile --target sgx --build-arg "SSH_KEY=$REPLACEME_YOUR_SSH_KEY" --build-arg BASE_IMAGE=ubuntu:22.04 .
+# IMPORTANT: using Ubuntu 22.04 is critical for the SGX version!
+# The image here would be fine with 24.04; but `integritee-worker` will NOT compile with it.
+#
+# docker tag ci-base-dev ghcr.io/interstellar-network/containers/ci-base:dev
+# docker tag ci-base-dev-sgx ghcr.io/interstellar-network/containers/ci-base-sgx:dev
+#
 # We need `--target default` that way we have a proper multi stage build.
 # We MUST nake sure the "default" PATH is NOT polluted with SGX else in eg the `node` we get:
 #   "/opt/intel/sgxsdk/binutils/ld: skipping incompatible /lib/x86_64-linux-gnu/libmvec.so.1 when searching for /lib/x86_64-linux-gnu/libmvec.so.1"
@@ -128,6 +134,7 @@ FROM base AS default
 ###############################################################################
 # Intel SGX Installation
 # Extracted and adapted from integritee/integritee-dev:0.2.2 for Ubuntu 22.04
+# cf https://github.com/integritee-network/integritee-dev/blob/main/worker/Dockerfile
 #
 # AND from https://github.com/Interstellar-Network/gh-actions/blob/ci-v4/install-sgx-sdk/action.yml 
 FROM base AS sgx
@@ -186,6 +193,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends gnupg && \
     ln -s $(find /usr/lib -type f -name "*sgx_dcap_quoteverify*") /usr/lib/x86_64-linux-gnu/libsgx_dcap_quoteverify.so && \
     ln -s $(find /usr/lib -type f -name "*dcap_quoteprov*") /usr/lib/x86_64-linux-gnu/libdcap_quoteprov.so && \
     rm -rf /var/lib/apt/lists/*
+
+# Need openssl 1.1 which is NOT available by default even on Ubuntu 22.04 anymore
+# https://gist.github.com/joulgs/c8a85bb462f48ffc2044dd878ecaa786
+# NOTE: only needed to compile eg `worker`
+RUN apt-get update && apt-get install -y --no-install-recommends software-properties-common && \
+    apt-add-repository -y ppa:rael-gc/rvm && \
+    apt-get update && apt-get install -y libssl-dev=1.1.1l-1ubuntu1.4 && \
+    rm -rf /var/lib/apt/lists/*
+
+# This is needed when using docker-compose b/c integritee-service DOES NOT retry in case of timeout/node not yet ready
+# https://github.com/jwilder/dockerize?tab=readme-ov-file#ubuntu-images
+ENV DOCKERIZE_VERSION=v0.9.3
+RUN cd /tmp && \
+    wget -O dockerize.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && \
+    tar xzf dockerize.tar.gz && \
+    chmod +x dockerize && \
+    mv dockerize /usr/local/bin/dockerize && \
+    rm dockerize.tar.gz && \
+    dockerize --version
 
 # switch back to "myuser"
 USER myuser
