@@ -94,14 +94,14 @@ ENV PATH="${HOME}/.cargo/bin:${PATH}"
 #
 # https://github.com/rui314/setup-mold/blob/main/action.yml
 # version=$(wget -q -O- https://api.github.com/repos/rui314/mold/releases/latest | jq -r .tag_name | sed 's/^v//'); true
-RUN export version=2.40.1 && \
+RUN export version=2.40.4 && \
     cd /tmp && \
     wget -O- https://github.com/rui314/mold/releases/download/v$version/mold-$version-$(uname -m)-linux.tar.gz | sudo tar -C /usr/local --strip-components=1 -xzf - && \
     sudo chmod +x /usr/local/bin/mold && \
     sudo ln -sf /usr/local/bin/mold $(realpath /usr/bin/ld)
 
 ###############################################################################
-ARG SCCACHE_VERSION=0.10.0
+ARG SCCACHE_VERSION=0.14.0
 # RUN cargo install --version ${SCCACHE_VERSION} sccache --locked
 RUN mkdir /tmp/sscache && \
         cd /tmp/sscache && \
@@ -204,7 +204,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends software-proper
 
 # This is needed when using docker-compose b/c integritee-service DOES NOT retry in case of timeout/node not yet ready
 # https://github.com/jwilder/dockerize?tab=readme-ov-file#ubuntu-images
-ENV DOCKERIZE_VERSION=v0.9.3
+ENV DOCKERIZE_VERSION=v0.10.1
 RUN cd /tmp && \
     wget -O dockerize.tar.gz https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && \
     tar xzf dockerize.tar.gz && \
