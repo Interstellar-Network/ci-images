@@ -117,14 +117,10 @@ ENV RUSTC_WRAPPER="/usr/local/bin/sccache"
 ###############################################################################
 # REPO specifics: lib_circuits-internal, but it is a dependency of all the repo (sort of)
 # so add that to the "base image" here
+# `circuit-gen-rs` spawns `yosys` and `yosys-abc` as subprocesses, so the two binaries must be on PATH.
 RUN sudo apt-get update && \
-        cd /tmp && \
-	wget https://github.com/Interstellar-Network/yosys/releases/download/yosys-0.29/yosys-0.1.29-Linux.deb -O yosys.deb \
-        &&  sudo -E apt-get install -y --no-install-recommends ./yosys.deb \
-        &&  wget https://github.com/Interstellar-Network/abc/releases/download/0.2.0/abc-0.1.1-Linux.deb -O abc.deb \
-        &&  sudo apt-get install -y --no-install-recommends ./abc.deb \
-	&& sudo apt-get install -y libboost-filesystem-dev libpng-dev libunwind-dev \
-    && sudo rm -rf /var/lib/apt/lists/*
+    sudo apt-get install -y --no-install-recommends yosys yosys-abc && \
+    sudo rm -rf /var/lib/apt/lists/*
 
 ###############################################################################
 ###############################################################################
