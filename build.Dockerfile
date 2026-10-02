@@ -6,8 +6,9 @@
 # IMPORTANT: using Ubuntu 22.04 is critical for the SGX version!
 # The image here would be fine with 24.04; but `integritee-worker` will NOT compile with it.
 #
-# docker tag ci-base-dev ghcr.io/interstellar-network/containers/ci-base:dev
-# docker tag ci-base-dev-sgx ghcr.io/interstellar-network/containers/ci-base-sgx:dev
+# WARN: both `node` and `worker` are still using `dev` and NOT `dev-v2`; mostly to avoid a PR just for that
+# docker tag ci-base-dev ghcr.io/interstellar-network/containers/ci-base:dev-v2
+# docker tag ci-base-dev-sgx ghcr.io/interstellar-network/containers/ci-base-sgx:dev-v2
 #
 # We need `--target default` that way we have a proper multi stage build.
 # We MUST nake sure the "default" PATH is NOT polluted with SGX else in eg the `node` we get:
@@ -115,17 +116,16 @@ ENV SCCACHE_DIR=$HOME/.cache/sccache
 ENV RUSTC_WRAPPER="/usr/local/bin/sccache"
 
 ###############################################################################
-# REPO specifics: lib_circuits-internal, but it is a dependency of all the repo (sort of)
-# so add that to the "base image" here
-# `circuit-gen-rs` spawns `yosys` and `yosys-abc` as subprocesses, so the two binaries must be on PATH.
-RUN sudo apt-get update && \
-    sudo apt-get install -y --no-install-recommends yosys yosys-abc && \
-    sudo rm -rf /var/lib/apt/lists/*
-
-###############################################################################
 ###############################################################################
 # end of the "default" image
 FROM base AS default
+
+###############################################################################
+# REPO specifics: lib_circuits-internal, but it is a dependency of all the repo (sort of)
+# `circuit-gen-rs` spawns `yosys` and `yosys-abc` as subprocesses, so the two binaries must be on PATH.
+RUN sudo apt-get update && \
+        sudo apt-get install -y --no-install-recommends yosys yosys-abc && \
+        sudo rm -rf /var/lib/apt/lists/*
 
 ###############################################################################
 # Intel SGX Installation
@@ -208,6 +208,13 @@ RUN cd /tmp && \
     mv dockerize /usr/local/bin/dockerize && \
     rm dockerize.tar.gz && \
     dockerize --version
+
+# REPO specifics: worker: needs g++-12 b/c of librock?
+# In any case, it does not compile without it b/c CC seems to be set to gcc-12 which pull g++-12
+# not sure exactly which package set CC...
+RUN sudo apt-get update && \
+        sudo apt-get install -y --no-install-recommends g++-12 && \
+        sudo rm -rf /var/lib/apt/lists/*
 
 # switch back to "myuser"
 USER myuser
